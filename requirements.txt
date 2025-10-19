@@ -6,3 +6,5 @@ tensorflow
 matplotlib
 tabulate
 pandas_ta
+seaborn
+matplotlib
