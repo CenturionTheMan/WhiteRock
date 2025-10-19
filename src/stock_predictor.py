@@ -4,8 +4,6 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
 import tabulate as tb
-import matplotlib.pyplot as plt
-import seaborn as sns
 import joblib 
 from tensorflow.keras.models import load_model
 
@@ -129,38 +127,32 @@ class StockPredictor:
         
     def predict(self, data_window):
         """
-        Predict the next value given a data window
+        Predict the next target value given a data window of shape (seq_length, n_features).
         """
+        if len(data_window) != self.seq_length:
+            raise ValueError(f"Expected {self.seq_length} rows, got {len(data_window)}")
+            
         scaled_window = self.scaler_features.transform(data_window)
-        X_input = np.array([scaled_window])
+        X_input = np.expand_dims(scaled_window, axis=0)  # shape (1, seq_length, n_features)
         
-        scaled_prediction = self.model.predict(X_input)
+        scaled_prediction = self.model.predict(X_input, verbose=0)
         prediction = self.scaler_target.inverse_transform(scaled_prediction)
-        
         return prediction[0, 0]
     
-    def update_model_online(self, new_row):
+    def update_model_online(self, data_window, target_value):
         """
-        Update the model with a single new row (next day's data) for online learning.
+        Update the model with a single training step using the given window and target value.
         
         Parameters:
-            new_row: pd.DataFrame with one row, same columns as original df
+            data_window (pd.DataFrame): The last seq_length rows of feature data.
+            target_value (float): The actual target value for the next day.
         """
-        # Append new_row to the base DataFrame
-        self.df_base = pd.concat([self.df_base, new_row])
-        
-        # Take the last `seq_length` rows to form the input sequence
-        data_window = self.df_base[self.features].iloc[-self.seq_length:]
-        
-        # Scale features
-        X_input = self.scaler_features.transform(data_window)
-        X_input = np.array([X_input])  # shape (1, seq_length, n_features)
-        
-        # Scale target
-        y_true = self.scaler_target.transform(new_row[[self.target]].values)
-        
-        # Train on this single batch
-        self.model.train_on_batch(X_input, y_true)
+        scaled_window = self.scaler_features.transform(data_window)
+        X_input = np.expand_dims(scaled_window, axis=0)  # shape (1, seq_length, n_features)
+
+        y_scaled = self.scaler_target.transform(np.array([[target_value]]))  # shape (1, 1)
+
+        self.model.train_on_batch(X_input, y_scaled)
         
     def save(self):
         self.model.save('lstm_stock_model.h5')
@@ -176,58 +168,3 @@ def increment_date(df, date, max_date, num_of_days):
         cur_date += pd.Timedelta(days=1)
     return None
         
-        
-BEGIN_DATE = '2004-08-19'
-END_DATE = '2019-12-19'
-df = pd.read_csv("./data/GOOGL.csv", parse_dates=['Date'], index_col='Date')
-df_train = df[(df.index >= BEGIN_DATE) & (df.index <= END_DATE)]
-
-# features = [
-#    'Open', 'High', 'Low', 'Close', 'Volume',
-#    'rsi', 'MACD_12_26_9', 'MACDh_12_26_9', 'MACDs_12_26_9',
-#    'BBL_20_2.0_2.0','BBM_20_2.0_2.0','BBU_20_2.0_2.0','BBB_20_2.0_2.0','BBP_20_2.0_2.0',
-#    'ema_10','ema_20','ema_50','atr','stoch_k','stoch_d'
-# ]
-
-features = [
-  'Close', 'Volume',
-   'rsi', 'MACD_12_26_9', 'MACDh_12_26_9', 'MACDs_12_26_9',
-]
-
-target = 'Close'
-
-sequence_length = 60
-epochs = 1
-batch_size=32
-sp = StockPredictor.create_new(
-    df_train=df_train,
-    scaler_features_path='scaler_features.save',
-    scaler_target_path='scaler_target.save',
-    model_path='lstm_stock_model.h5',
-    epochs=epochs,
-    batch_size=batch_size,
-    seq_length=sequence_length,
-    features=features,
-    target=target
-)
-sp.save()
-
-max_date = df.index.max()
-cur_date = pd.to_datetime(END_DATE) + pd.Timedelta(days=1)
-while cur_date < max_date and cur_date is not None:
-    if not (cur_date in df.index):
-        raise ValueError(f"Date {cur_date} not in DataFrame index.")
-    new_row = df.loc[[cur_date]]
-    prediction = sp.predict(new_row[features])
-    
-    next_day = increment_date(df, cur_date, max_date, 1)
-    if next_day not in df.index:
-        raise ValueError(f"Date {next_day} not in DataFrame index.")
-    
-    actual = df.loc[[next_day]]
-    print(f"Date: {next_day.date()}, Predicted: {prediction:.2f}, Actual: {actual[target].values[0]:.2f}")
-    sp.update_model_online(new_row)
-    cur_date = increment_date(df, cur_date, max_date, 1)
-    
-    
-
