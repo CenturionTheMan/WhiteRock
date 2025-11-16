@@ -14,12 +14,12 @@ class FinancialLSTMModel:
         date_col,
         features, 
         target,
-        seq_length=60,
-        batch_size=32,
-        learning_rate=0.001,
-        epochs=100,
-        test_ratio=0.1,
-        val_split=0.1,
+        seq_length,
+        batch_size,
+        learning_rate,
+        epochs,
+        test_ratio,
+        val_split,
         shuffle=False,
         training_ranges=None,
         testing_ranges=None
@@ -67,7 +67,7 @@ class FinancialLSTMModel:
         self.df = self.df[[self.date_col] + self.feature_names + [self.target]]
         self.df.dropna(inplace=True)
         
-        if self.training_ranges.count() == 0 or self.testing_ranges.count() == 0:
+        if len(self.training_ranges) == 0 or len(self.testing_ranges) == 0:
             train_test_split = int(len(self.df) * (1 - self.test_ratio))
             date_train_beg = self.df[self.date_col].iloc[0]
             date_train_end = self.df[self.date_col].iloc[train_test_split - 1]
@@ -75,8 +75,8 @@ class FinancialLSTMModel:
             date_test_end = self.df[self.date_col].iloc[-1]
             self.training_ranges = [(date_train_beg, date_train_end)]
             self.testing_ranges = [(date_test_beg, date_test_end)]
-            print(f"Training range: {self.training_ranges}")
-            print(f"Testing range: {self.testing_ranges}")
+            # print(f"Training range: {self.training_ranges}")
+            # print(f"Testing range: {self.testing_ranges}")
 
         feature_data = self.df[self.feature_names]
         target_data = self.df[[self.target]].values
@@ -119,10 +119,10 @@ class FinancialLSTMModel:
         self.y_test = np.array(y_test)
 
 
-        if self.val_split > 0.0:
-            print(f"Training samples: {len(self.X_train)}, Validation samples: {len(self.X_val)}, Testing samples: {len(self.X_test)}")
-        else:
-            print(f"Training samples: {len(self.X_train)}, Testing samples: {len(self.X_test)}")
+        # if self.val_split > 0.0:
+        #     print(f"Training samples: {len(self.X_train)}, Validation samples: {len(self.X_val)}, Testing samples: {len(self.X_test)}")
+        # else:
+        #     print(f"Training samples: {len(self.X_train)}, Testing samples: {len(self.X_test)}")
 
         # ---------------- PER-FEATURE SCALING ---------------- #
 
@@ -183,13 +183,13 @@ class FinancialLSTMModel:
 
     def train(self):
         callbacks = [
-            tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=2),
+            tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=2, verbose=0),
             tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=15, restore_best_weights=True, verbose=1)
         ]
 
         val = (self.X_val, self.y_val) if self.val_split > 0 else None
 
-        self.model.fit(
+        self.history = self.model.fit(
             self.X_train, self.y_train,
             epochs=self.epochs,
             validation_data=val,
@@ -207,10 +207,18 @@ class FinancialLSTMModel:
         y_true = self.y_test.flatten()
 
         first_correct = preds[0] == y_true[0]
+        
+        auc =  tf.keras.metrics.AUC()(y_true, preds_prob).numpy()
+        auc_roc = tf.keras.metrics.AUC(curve='ROC')(y_true, preds_prob).numpy()
+
+        last_epoch_num = len(self.history.history['loss']) - 1
 
         return {
             "first_prediction_correct": first_correct,
             "accuracy": float(accuracy_score(y_true, preds)),
             "f1_score": float(f1_score(y_true, preds)),
-            "confusion_matrix": confusion_matrix(y_true, preds).tolist()
+            "auc": float(auc),
+            "auc_roc": float(auc_roc),
+            "confusion_matrix": confusion_matrix(y_true, preds).tolist(),
+            "last epoch num": last_epoch_num
         }

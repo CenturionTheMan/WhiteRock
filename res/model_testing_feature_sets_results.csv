@@ -1,0 +1,2 @@
+feature_set_index,features,repetition,first_prediction_correct,accuracy,f1_score,auc,auc_roc,confusion_matrix,last epoch num
+0,['Close'],0,True,0.5401234567901234,0.7014028056112225,0.5064429640769958,0.5064429640769958,"[[0, 149], [0, 175]]",16
