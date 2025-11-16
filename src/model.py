@@ -18,11 +18,13 @@ class FinancialLSTMModel:
         batch_size=32,
         learning_rate=0.001,
         epochs=100,
+        test_ratio=0.1,
         val_split=0.1,
         shuffle=False,
         training_ranges=None,
         testing_ranges=None
     ):
+        self.test_ratio = test_ratio
         self.shuffle = shuffle
         self.csv_path = csv_path
         self.date_col = date_col
@@ -34,6 +36,7 @@ class FinancialLSTMModel:
         self.learning_rate = learning_rate
         self.epochs = epochs
         self.val_split = val_split
+        
         self.training_ranges = training_ranges or []
         self.testing_ranges = testing_ranges or []
 
@@ -63,6 +66,17 @@ class FinancialLSTMModel:
         self.df = self.df.sort_values(self.date_col).reset_index(drop=True)
         self.df = self.df[[self.date_col] + self.feature_names + [self.target]]
         self.df.dropna(inplace=True)
+        
+        if self.training_ranges.count() == 0 or self.testing_ranges.count() == 0:
+            train_test_split = int(len(self.df) * (1 - self.test_ratio))
+            date_train_beg = self.df[self.date_col].iloc[0]
+            date_train_end = self.df[self.date_col].iloc[train_test_split - 1]
+            date_test_beg = self.df[self.date_col].iloc[train_test_split]
+            date_test_end = self.df[self.date_col].iloc[-1]
+            self.training_ranges = [(date_train_beg, date_train_end)]
+            self.testing_ranges = [(date_test_beg, date_test_end)]
+            print(f"Training range: {self.training_ranges}")
+            print(f"Testing range: {self.testing_ranges}")
 
         feature_data = self.df[self.feature_names]
         target_data = self.df[[self.target]].values
@@ -169,8 +183,8 @@ class FinancialLSTMModel:
 
     def train(self):
         callbacks = [
-            tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=5),
-            tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=15, restore_best_weights=True, verbose=0)
+            tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=2),
+            tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=15, restore_best_weights=True, verbose=1)
         ]
 
         val = (self.X_val, self.y_val) if self.val_split > 0 else None
