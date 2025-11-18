@@ -208,7 +208,6 @@ class FinancialLSTMModel:
 
         first_correct = preds[0] == y_true[0]
         
-        auc =  tf.keras.metrics.AUC()(y_true, preds_prob).numpy()
         auc_roc = tf.keras.metrics.AUC(curve='ROC')(y_true, preds_prob).numpy()
 
         last_epoch_num = len(self.history.history['loss']) - 1
@@ -217,7 +216,6 @@ class FinancialLSTMModel:
             "first_prediction_correct": first_correct,
             "accuracy": float(accuracy_score(y_true, preds)),
             "f1_score": float(f1_score(y_true, preds)),
-            "auc": float(auc),
             "auc_roc": float(auc_roc),
             "confusion_matrix": confusion_matrix(y_true, preds).tolist(),
             "last epoch num": last_epoch_num
