@@ -1,18 +1,13 @@
 from typing import List, Tuple
+
 import pandas as pd
 import numpy as np
+
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
+
 import tensorflow as tf
-from tensorflow.keras.layers import (
-    InputLayer,
-    LSTM,
-    LayerNormalization,
-    Dense,
-    BatchNormalization,
-    Dropout
-)
-from tensorflow.keras import optimizers
+from tensorflow.keras import layers, optimizers
 
 
 class FinancialLSTMModel:
@@ -91,10 +86,10 @@ class FinancialLSTMModel:
     def build_model(self, hidden_layers: List[tf.keras.layers.Layer]):
         model = tf.keras.Sequential()
         
-        model.add(InputLayer(shape=(self.seq_length, len(self.feature_names))))
+        model.add(layers.InputLayer(shape=(self.seq_length, len(self.feature_names))))
         for layer in hidden_layers:
             model.add(layer)
-        model.add(Dense(1, activation='sigmoid'))
+        model.add(layers.Dense(1, activation='sigmoid'))
         
         self.model = model
         self.model.compile(
