@@ -87,8 +87,11 @@ class FinancialLSTMModel:
         model = tf.keras.Sequential()
         
         model.add(layers.InputLayer(shape=(self.seq_length, len(self.feature_names))))
+        
         for layer in hidden_layers:
-            model.add(layer)
+            new_layer = layer.__class__.from_config(layer.get_config())
+            model.add(new_layer)
+            
         model.add(layers.Dense(1, activation='sigmoid'))
         
         self.model = model
