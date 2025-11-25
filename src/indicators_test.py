@@ -1,28 +1,15 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[8]:
-
-
 from model import FinancialLSTMModel
 import pandas as pd
-
 import os, random, numpy as np, tensorflow as tf
 
+SEED = 41
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+tf.config.experimental_run_functions_eagerly(False)
+random.seed(SEED)
+np.random.seed(SEED)
+tf.random.set_seed(SEED)
 
-
-# In[9]:
-
-
-# SEED = 42
-# random.seed(SEED)
-# np.random.seed(SEED)
-# tf.random.set_seed(SEED)
-
-
-# In[ ]:
-
+# -------------------------- PARAMS --------------------------
 
 CSV_PATHS = [
     './../data/AAPL_1h.csv', 
@@ -43,9 +30,6 @@ VAL_SPLIT = 0.1
 
 REPS = 30
 OUTPUT_DIR='./../res/'
-
-
-# In[11]:
 
 
 FEATURES = [
@@ -155,9 +139,6 @@ FEATURES = [
 ]
 
 
-# In[12]:
-
-
 HIDDEN_LAYERS = [
 
         tf.keras.layers.LSTM(96, return_sequences=True, recurrent_dropout=0.1),
@@ -172,7 +153,7 @@ HIDDEN_LAYERS = [
     ]
 
 
-# In[13]:
+# -------------------------- VALIDATION CHECK --------------------------
 
 
 for file in CSV_PATHS:
@@ -186,12 +167,11 @@ for file in CSV_PATHS:
                 raise ValueError(f"Feature {feature} not found in {file}.")
 
 
-# In[ ]:
-
+# -------------------------- TEST --------------------------
 
 res = []
 
-for r in range(4, REPS):
+for r in range(REPS):
     for file in CSV_PATHS:
         for idx, feat in enumerate(FEATURES):
             model = FinancialLSTMModel(
@@ -227,6 +207,14 @@ for r in range(4, REPS):
             df_res = pd.DataFrame(res)
             df_res.to_csv(os.path.join(OUTPUT_DIR, 'model1_testing.csv'), index=False)
             print("")
+            
+            # CLEANUP
+            del model
+            tf.keras.backend.clear_session()
+            tf.compat.v1.reset_default_graph()
+
+            import gc
+            gc.collect()
 
 
 
