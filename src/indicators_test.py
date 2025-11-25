@@ -139,8 +139,8 @@ FEATURES = [
 ]
 
 
-HIDDEN_LAYERS = [
-
+def build_hidden_layers():
+    return [
         tf.keras.layers.LSTM(96, return_sequences=True, recurrent_dropout=0.1),
         tf.keras.layers.LayerNormalization(),
         tf.keras.layers.LSTM(96, return_sequences=False, recurrent_dropout=0.1),
@@ -191,7 +191,7 @@ for r in range(REPS):
             print(f" ---- Running file {file}, feature {idx+1}/{len(FEATURES)}, repetition {r+1}/{REPS} ---- ")
 
             model.prepare_data()
-            model.build_model(HIDDEN_LAYERS)
+            model.build_model(build_hidden_layers())
             model.train()
             ev = model.evaluate()
             print(f" > Evaluation results: {ev}")
