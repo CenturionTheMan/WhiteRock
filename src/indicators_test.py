@@ -15,10 +15,10 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 # In[9]:
 
 
-SEED = 42
-random.seed(SEED)
-np.random.seed(SEED)
-tf.random.set_seed(SEED)
+# SEED = 42
+# random.seed(SEED)
+# np.random.seed(SEED)
+# tf.random.set_seed(SEED)
 
 
 # In[ ]:
@@ -191,7 +191,7 @@ for file in CSV_PATHS:
 
 res = []
 
-for r in range(REPS):
+for r in range(4, REPS):
     for file in CSV_PATHS:
         for idx, feat in enumerate(FEATURES):
             model = FinancialLSTMModel(
