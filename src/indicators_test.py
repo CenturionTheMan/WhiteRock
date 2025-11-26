@@ -171,7 +171,7 @@ for file in CSV_PATHS:
 
 res = []
 
-for r in range(REPS):
+for r in range(11, REPS):
     for file in CSV_PATHS:
         for idx, feat in enumerate(FEATURES):
             model = FinancialLSTMModel(
