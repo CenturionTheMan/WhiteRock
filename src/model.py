@@ -8,7 +8,22 @@ from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
 
 import tensorflow as tf
 from tensorflow.keras import layers, optimizers
+from tensorflow.keras import backend as K
+import gc
+import time
 
+def cleanup(*args):
+    for obj in args:
+        try:
+            del obj
+        except:
+            pass
+    K.clear_session()
+    gc.collect()
+    time.sleep(1)
+    gc.collect()
+    time.sleep(5)
+    
 
 class FinancialLSTMModel:
 
@@ -38,6 +53,28 @@ class FinancialLSTMModel:
         self.test_ratio = test_ratio
         self.val_split = val_split
         self.model = None
+        
+    def close(self):
+        attrs_to_kill = [
+            getattr(self, "model", None),
+            getattr(self, "X_train", None),
+            getattr(self, "y_train", None),
+            getattr(self, "X_val", None),
+            getattr(self, "y_val", None),
+            getattr(self, "X_test", None),
+            getattr(self, "y_test", None),
+            getattr(self, "history", None),
+        ]
+
+        cleanup(*attrs_to_kill)
+
+        for name in [
+            "model", "X_train", "y_train", "X_val", "y_val",
+            "X_test", "y_test", "history"
+        ]:
+            if hasattr(self, name):
+                delattr(self, name)
+
         
     def prepare_data(self):
         df = pd.read_csv(self.csv_path, parse_dates=[self.datetime_col])

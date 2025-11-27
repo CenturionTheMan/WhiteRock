@@ -1,8 +1,10 @@
-from model import FinancialLSTMModel
+from model import FinancialLSTMModel, cleanup
 import pandas as pd
 import os, random, numpy as np, tensorflow as tf
 
-SEED = 41
+
+
+SEED = 2222
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 tf.config.experimental_run_functions_eagerly(False)
 random.seed(SEED)
@@ -169,9 +171,8 @@ for file in CSV_PATHS:
 
 # -------------------------- TEST --------------------------
 
-res = []
-
-for r in range(11, REPS):
+for r in range(14, REPS):
+    res = []
     for file in CSV_PATHS:
         for idx, feat in enumerate(FEATURES):
             model = FinancialLSTMModel(
@@ -205,16 +206,13 @@ for r in range(11, REPS):
             })
 
             df_res = pd.DataFrame(res)
-            df_res.to_csv(os.path.join(OUTPUT_DIR, 'model1_testing.csv'), index=False)
+            df_res.to_csv(os.path.join(OUTPUT_DIR, f'model1_testing_rep{r}.csv'), index=False)
             print("")
             
-            # CLEANUP
-            del model
+            model.close()
+            cleanup(model, df_res)
             tf.keras.backend.clear_session()
             tf.compat.v1.reset_default_graph()
-
-            import gc
-            gc.collect()
-
-
+    cleanup(res)
+            
 
