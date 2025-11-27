@@ -171,7 +171,7 @@ for file in CSV_PATHS:
 
 # -------------------------- TEST --------------------------
 
-for r in range(14, REPS):
+for r in range(18, REPS):
     res = []
     for file in CSV_PATHS:
         for idx, feat in enumerate(FEATURES):
