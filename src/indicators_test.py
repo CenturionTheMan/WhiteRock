@@ -4,12 +4,12 @@ import os, random, numpy as np, tensorflow as tf
 
 
 
-SEED = 2222
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
-tf.config.experimental_run_functions_eagerly(False)
-random.seed(SEED)
-np.random.seed(SEED)
-tf.random.set_seed(SEED)
+# SEED = 2222
+# os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
+# tf.config.experimental_run_functions_eagerly(False)
+# random.seed(SEED)
+# np.random.seed(SEED)
+# tf.random.set_seed(SEED)
 
 # -------------------------- PARAMS --------------------------
 

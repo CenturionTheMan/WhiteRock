@@ -12,6 +12,9 @@ from tensorflow.keras import backend as K
 import gc
 import time
 
+VERBOSE = 1
+PRINT_MODEL = True
+
 def cleanup(*args):
     for obj in args:
         try:
@@ -118,6 +121,12 @@ class FinancialLSTMModel:
                 self.X_val[:, :, i] = scaler.transform(flat_X_val).reshape(self.X_val.shape[0], self.seq_length)
                 flat_X_test = self.X_test[:, :, i].reshape(-1, 1)
                 self.X_test[:, :, i] = scaler.transform(flat_X_test).reshape(self.X_test.shape[0], self.seq_length)
+        
+        if VERBOSE == 1:
+            print(f"Data prepared: {self.X_train.shape[0]} train samples, {self.X_val.shape[0]} val samples, {self.X_test.shape[0]} test samples.")
+            train_df = pd.DataFrame(self.X_train.reshape(-1, len(self.feature_names)), columns=self.feature_names)
+            print("Train data feature stats:")
+            print(train_df.describe())
 
                 
     def build_model(self, hidden_layers: List[tf.keras.layers.Layer]):
@@ -138,10 +147,13 @@ class FinancialLSTMModel:
             metrics=['accuracy']
         )
         
+        if PRINT_MODEL:
+            self.model.summary()
+        
         
     def train(self):
         callbacks = [
-            tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=2, verbose=0),
+            tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=2, verbose=VERBOSE),
             tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=15, restore_best_weights=True, verbose=1)
         ]
 
@@ -153,7 +165,7 @@ class FinancialLSTMModel:
             validation_data=val,
             batch_size=self.batch_size,
             callbacks=callbacks,
-            verbose=0
+            verbose=VERBOSE
         )
         
     def evaluate(self):
@@ -166,6 +178,8 @@ class FinancialLSTMModel:
         auc_roc = tf.keras.metrics.AUC(curve='ROC')(y_true, preds_prob).numpy()
 
         last_epoch_num = len(self.history.history['loss']) - 1
+        balanced_accuracy = tf.keras.metrics.BalancedAccuracy()(y_true, preds).numpy()
+
 
         return {
             "first_prediction_correct": first_correct,
@@ -175,5 +189,6 @@ class FinancialLSTMModel:
             "recall": float(tf.keras.metrics.Recall()(y_true, preds).numpy()),
             "auc_roc": float(auc_roc),
             "confusion_matrix": confusion_matrix(y_true, preds).tolist(),
-            "last epoch num": last_epoch_num
+            "last epoch num": last_epoch_num,
+            # "balanced_accuracy": float(balanced_accuracy)
         }
