@@ -5,7 +5,7 @@ import numpy as np
 
 from sklearn.preprocessing import MinMaxScaler, StandardScaler
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
-
+from sklearn.metrics import balanced_accuracy_score
 import tensorflow as tf
 from tensorflow.keras import layers, optimizers
 from tensorflow.keras import backend as K
@@ -13,7 +13,7 @@ import gc
 import time
 
 VERBOSE = 1
-PRINT_MODEL = True
+PRINT_MODEL = False
 
 def cleanup(*args):
     for obj in args:
@@ -122,7 +122,7 @@ class FinancialLSTMModel:
                 flat_X_test = self.X_test[:, :, i].reshape(-1, 1)
                 self.X_test[:, :, i] = scaler.transform(flat_X_test).reshape(self.X_test.shape[0], self.seq_length)
         
-        if VERBOSE == 1:
+        if PRINT_MODEL:
             print(f"Data prepared: {self.X_train.shape[0]} train samples, {self.X_val.shape[0]} val samples, {self.X_test.shape[0]} test samples.")
             train_df = pd.DataFrame(self.X_train.reshape(-1, len(self.feature_names)), columns=self.feature_names)
             print("Train data feature stats:")
@@ -178,8 +178,10 @@ class FinancialLSTMModel:
         auc_roc = tf.keras.metrics.AUC(curve='ROC')(y_true, preds_prob).numpy()
 
         last_epoch_num = len(self.history.history['loss']) - 1
-        balanced_accuracy = tf.keras.metrics.BalancedAccuracy()(y_true, preds).numpy()
-
+        
+        conf_matrix = confusion_matrix(y_true, preds)
+        
+        balanced_accuracy = balanced_accuracy_score(y_true, preds)
 
         return {
             "first_prediction_correct": first_correct,
@@ -188,7 +190,7 @@ class FinancialLSTMModel:
             "precision": float(tf.keras.metrics.Precision()(y_true, preds).numpy()),
             "recall": float(tf.keras.metrics.Recall()(y_true, preds).numpy()),
             "auc_roc": float(auc_roc),
-            "confusion_matrix": confusion_matrix(y_true, preds).tolist(),
+            "confusion_matrix": conf_matrix.tolist(),
             "last epoch num": last_epoch_num,
-            # "balanced_accuracy": float(balanced_accuracy)
+            "balanced_accuracy": float(balanced_accuracy)
         }
