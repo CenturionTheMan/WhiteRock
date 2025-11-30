@@ -12,8 +12,8 @@ from tensorflow.keras import backend as K
 import gc
 import time
 
-VERBOSE = 1
-PRINT_MODEL = True
+VERBOSE = 0
+PRINT_MODEL = False
 
 def cleanup(*args):
     for obj in args:
@@ -122,7 +122,7 @@ class FinancialLSTMModel:
                 flat_X_test = self.X_test[:, :, i].reshape(-1, 1)
                 self.X_test[:, :, i] = scaler.transform(flat_X_test).reshape(self.X_test.shape[0], self.seq_length)
         
-        if VERBOSE == 1:
+        if PRINT_MODEL:
             print(f"Data prepared: {self.X_train.shape[0]} train samples, {self.X_val.shape[0]} val samples, {self.X_test.shape[0]} test samples.")
             train_df = pd.DataFrame(self.X_train.reshape(-1, len(self.feature_names)), columns=self.feature_names)
             print("Train data feature stats:")
@@ -178,8 +178,7 @@ class FinancialLSTMModel:
         auc_roc = tf.keras.metrics.AUC(curve='ROC')(y_true, preds_prob).numpy()
 
         last_epoch_num = len(self.history.history['loss']) - 1
-        balanced_accuracy = tf.keras.metrics.BalancedAccuracy()(y_true, preds).numpy()
-
+        # balanced_accuracy = tf.keras.metrics.BalancedAccuracy()(y_true, preds).numpy()
 
         return {
             "first_prediction_correct": first_correct,

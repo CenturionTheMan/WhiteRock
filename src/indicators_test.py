@@ -30,116 +30,121 @@ EPOCHS = 100
 TEST_RATIO = 0.1
 VAL_SPLIT = 0.1
 
-REPS = 30
+REPS = 10
 OUTPUT_DIR='./../res/'
 
 
-FEATURES = [
-    [("Close", "minmax")],
+# FEATURES = [
+#     [("Close", "minmax")],
 
-    [("Close", "minmax"),
-     ("rsi_14", "minmax"),
-     ("rsi_28", "minmax"),
-     ("rsi_50", "minmax"),
-     ("rsi_7", "minmax"),],
+#     [("Close", "minmax"),
+#      ("rsi_14", "minmax"),
+#      ("rsi_28", "minmax"),
+#      ("rsi_50", "minmax"),
+#      ("rsi_7", "minmax"),],
 
-    [("Close", "minmax"),
-     ("macd", "standard"),
-     ],
+#     [("Close", "minmax"),
+#      ("macd", "standard"),
+#      ],
 
-    [("Close", "minmax"),
-     ("ema_10", "standard"),
-     ("ema_20", "standard"),
-     ("ema_50", "standard"),
-     ("ema_100", "standard"),
-     ("ema_200", "standard"),
-     ],
+#     [("Close", "minmax"),
+#      ("ema_10", "standard"),
+#      ("ema_20", "standard"),
+#      ("ema_50", "standard"),
+#      ("ema_100", "standard"),
+#      ("ema_200", "standard"),
+#      ],
 
-    [("Close", "minmax"),
-     ("stoch_k", "minmax"),
-     ("stoch_d", "minmax"),
-     ],
+#     [("Close", "minmax"),
+#      ("stoch_k", "minmax"),
+#      ("stoch_d", "minmax"),
+#      ],
 
-    [("Close", "minmax"),
-     ("roc", "standard"),
-     ],
+#     [("Close", "minmax"),
+#      ("roc", "standard"),
+#      ],
 
-    [("Close", "minmax"),
-     ("adx", "minmax"),
-     ("di_plus", "minmax"),
-     ("di_minus", "minmax"),
-     ],
+#     [("Close", "minmax"),
+#      ("adx", "minmax"),
+#      ("di_plus", "minmax"),
+#      ("di_minus", "minmax"),
+#      ],
 
-    [("Close", "minmax"),
-     ("atr_14", "standard"),
-     ("atr_20", "standard"),
-     ],
+#     [("Close", "minmax"),
+#      ("atr_14", "standard"),
+#      ("atr_20", "standard"),
+#      ],
 
-    [("Close", "minmax"),
-     ("close_pos", "none"),
-     ],
-
-
-    [("Close", "minmax"),
-     ("body_range_ratio", "none"),
-     ],
+#     [("Close", "minmax"),
+#      ("close_pos", "none"),
+#      ],
 
 
-    [("Close", "minmax"),   
-     ("Volume", "minmax"),
-     ],
+#     [("Close", "minmax"),
+#      ("body_range_ratio", "none"),
+#      ],
 
-        # ---------- Wariant A ----------
-     [
-        ("Close", "minmax"),
-        ("ema_20", "standard"),
-        ("ema_50", "standard"),
-        ("macd", "standard"),
-        ("rsi_14", "minmax"),
-        ("atr_20", "standard"),
-        ("volume_zscore_50", "standard"),
-    ],
 
-        # ---------- Wariant B ----------
-    [
-        ("Close", "minmax"),
-        ("rsi_14", "minmax"),
-        ("rsi_28", "minmax"),
-        ("stoch_k", "minmax"),
-        ("stoch_d", "minmax"),
-        ("bb_upper_20", "standard"),
-        ("bb_middle_20", "standard"),
-        ("bb_lower_20", "standard"),
-        ("atr_14", "standard"),
-    ],
+#     [("Close", "minmax"),   
+#      ("Volume", "minmax"),
+#      ],
 
-        # ---------- Wariant C ----------
-    [
-        ("Close", "minmax"),
-        ("adx", "minmax"),
-        ("atr_20", "standard"),
-        ("bb_upper_20", "standard"),
-        ("bb_middle_20", "standard"),
-        ("bb_lower_20", "standard"),
-        ("ema_20", "standard"),
-        ("ema_100", "standard"),
-        ("volume_zscore_50", "standard"),
-    ],
+#         # ---------- Wariant A ----------
+#      [
+#         ("Close", "minmax"),
+#         ("ema_20", "standard"),
+#         ("ema_50", "standard"),
+#         ("macd", "standard"),
+#         ("rsi_14", "minmax"),
+#         ("atr_20", "standard"),
+#         ("volume_zscore_50", "standard"),
+#     ],
 
-        # ---------- Wariant D ----------
-    [
-        ("Close", "minmax"),
-        ("rsi_14", "minmax"),
-        ("rsi_50", "minmax"),
-        ("ema_10", "standard"),
-        ("ema_50", "standard"),
-        ("ema_200", "standard"),
-        ("atr_20", "standard"),
-        ("obv", "standard"),
-        ("bb_width_20", "standard"),
-    ],
-]
+#         # ---------- Wariant B ----------
+#     [
+#         ("Close", "minmax"),
+#         ("rsi_14", "minmax"),
+#         ("rsi_28", "minmax"),
+#         ("stoch_k", "minmax"),
+#         ("stoch_d", "minmax"),
+#         ("bb_upper_20", "standard"),
+#         ("bb_middle_20", "standard"),
+#         ("bb_lower_20", "standard"),
+#         ("atr_14", "standard"),
+#     ],
 
+#         # ---------- Wariant C ----------
+#     [
+#         ("Close", "minmax"),
+#         ("adx", "minmax"),
+#         ("atr_20", "standard"),
+#         ("bb_upper_20", "standard"),
+#         ("bb_middle_20", "standard"),
+#         ("bb_lower_20", "standard"),
+#         ("ema_20", "standard"),
+#         ("ema_100", "standard"),
+#         ("volume_zscore_50", "standard"),
+#     ],
+
+#         # ---------- Wariant D ----------
+#     [
+#         ("Close", "minmax"),
+#         ("rsi_14", "minmax"),
+#         ("rsi_50", "minmax"),
+#         ("ema_10", "standard"),
+#         ("ema_50", "standard"),
+#         ("ema_200", "standard"),
+#         ("atr_20", "standard"),
+#         ("obv", "standard"),
+#         ("bb_width_20", "standard"),
+#     ],
+# ]
+
+FEATURES = []
+data_tmp = pd.read_csv(CSV_PATHS[0], parse_dates=[DATE_COL])
+all_cols = data_tmp.columns.tolist()
+FEATURES = [[(feat, "minmax") for feat in all_cols if feat not in ['Datetime', 'returns', 'direction']]]
+print("Using features:", FEATURES)
 
 def build_hidden_layers():
     return [
@@ -171,7 +176,7 @@ for file in CSV_PATHS:
 
 # -------------------------- TEST --------------------------
 
-for r in range(25, REPS):
+for r in range(0, REPS):
     res = []
     for file in CSV_PATHS:
         for idx, feat in enumerate(FEATURES):
