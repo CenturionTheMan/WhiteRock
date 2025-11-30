@@ -11,6 +11,9 @@ from tensorflow.keras import layers, optimizers
 from tensorflow.keras import backend as K
 import gc
 import time
+from tensorflow.keras.utils import to_categorical
+from sklearn.utils.class_weight import compute_class_weight
+from imblearn.under_sampling import RandomUnderSampler
 
 VERBOSE = 1
 PRINT_MODEL = False
@@ -43,6 +46,8 @@ class FinancialLSTMModel:
         epochs : int,
         test_ratio : float,
         val_split : float,
+        weight_adj_factors : List['float'] = [1,1,1],
+        under_sample_imbalanced = False
     ):
         self.csv_path = csv_path
         self.features_scales = features_scales
@@ -56,6 +61,8 @@ class FinancialLSTMModel:
         self.test_ratio = test_ratio
         self.val_split = val_split
         self.model = None
+        self.weight_adj_factors = weight_adj_factors
+        self.under_sample_imbalanced = under_sample_imbalanced
         
     def close(self):
         attrs_to_kill = [
@@ -122,12 +129,51 @@ class FinancialLSTMModel:
                 flat_X_test = self.X_test[:, :, i].reshape(-1, 1)
                 self.X_test[:, :, i] = scaler.transform(flat_X_test).reshape(self.X_test.shape[0], self.seq_length)
         
+        if self.under_sample_imbalanced:
+            n_samples, n_timesteps, n_features = self.X_train.shape
+            X_train_flat = self.X_train.reshape(n_samples, n_timesteps * n_features)
+
+            rus = RandomUnderSampler(sampling_strategy='majority', random_state=42)
+            
+            X_resampled_flat, y_resampled = rus.fit_resample(X_train_flat, self.y_train)
+
+            self.X_train = X_resampled_flat.reshape(-1, n_timesteps, n_features)
+            self.y_train = y_resampled # y_train is now balanced
+        
+        self.y_train = to_categorical(self.y_train, num_classes=3)
+        self.y_val = to_categorical(self.y_val, num_classes=3)
+        self.y_test = to_categorical(self.y_test, num_classes=3)
+        
         if PRINT_MODEL:
             print(f"Data prepared: {self.X_train.shape[0]} train samples, {self.X_val.shape[0]} val samples, {self.X_test.shape[0]} test samples.")
             train_df = pd.DataFrame(self.X_train.reshape(-1, len(self.feature_names)), columns=self.feature_names)
             print("Train data feature stats:")
             print(train_df.describe())
+            if self.under_sample_imbalanced:
+                print(f"y_train class distribution after undersampling: {np.sum(self.y_train, axis=0)}")
 
+
+    def calculate_weights(self):
+        y_integers = np.argmax(self.y_train, axis=1) 
+        classes = np.unique(y_integers)
+        weights = compute_class_weight(
+            class_weight='balanced', 
+            classes=classes, 
+            y=y_integers
+        )
+        class_weight_dict = dict(zip(classes, weights))
+        
+        if 0 in class_weight_dict:
+            class_weight_dict[0] *= self.weight_adj_factors[0]
+        if 1 in class_weight_dict:
+            class_weight_dict[1] *= self.weight_adj_factors[1]
+        if 2 in class_weight_dict:
+            class_weight_dict[2] *= self.weight_adj_factors[2]
+        
+        if PRINT_MODEL:
+            print(f"Calculated Class Weights: {class_weight_dict}")
+        
+        return class_weight_dict
                 
     def build_model(self, hidden_layers: List[tf.keras.layers.Layer]):
         model = tf.keras.Sequential()
@@ -138,23 +184,24 @@ class FinancialLSTMModel:
             new_layer = layer.__class__.from_config(layer.get_config())
             model.add(new_layer)
             
-        model.add(layers.Dense(1, activation='sigmoid'))
+        model.add(layers.Dense(3, activation='softmax'))
         
         self.model = model
         self.model.compile(
             optimizer=optimizers.Adam(learning_rate=self.learning_rate),
-            loss='binary_crossentropy',
-            metrics=['accuracy']
+            loss='categorical_crossentropy',
+            metrics=[balanced_accuracy, tf.keras.metrics.AUC(name='auc_roc')]
         )
         
         if PRINT_MODEL:
             self.model.summary()
         
-        
     def train(self):
+        class_weights = self.calculate_weights()
+        
         callbacks = [
-            tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=2, verbose=VERBOSE),
-            tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=15, restore_best_weights=True, verbose=1)
+            tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=3, verbose=VERBOSE),
+            tf.keras.callbacks.EarlyStopping(monitor='val_balanced_accuracy', mode='max', patience=30, restore_best_weights=True, verbose=1)
         ]
 
         val = (self.X_val, self.y_val) if self.val_split > 0 else None
@@ -165,32 +212,35 @@ class FinancialLSTMModel:
             validation_data=val,
             batch_size=self.batch_size,
             callbacks=callbacks,
+            class_weight=class_weights,
             verbose=VERBOSE
         )
         
     def evaluate(self):
         preds_prob = self.model.predict(self.X_test, verbose=0)
-        preds = (preds_prob > 0.5).astype(int).flatten()
-        y_true = self.y_test.flatten()
-
-        first_correct = preds[0] == y_true[0]
-        
-        auc_roc = tf.keras.metrics.AUC(curve='ROC')(y_true, preds_prob).numpy()
-
-        last_epoch_num = len(self.history.history['loss']) - 1
-        
-        conf_matrix = confusion_matrix(y_true, preds)
-        
-        balanced_accuracy = balanced_accuracy_score(y_true, preds)
-
+        preds = np.argmax(preds_prob, axis=1)
+        y_true = np.argmax(self.y_test, axis=1)
+        acc = accuracy_score(y_true, preds)
+        f1 = f1_score(y_true, preds, average='weighted')
+        bal_acc = balanced_accuracy_score(y_true, preds)
+        precision = tf.keras.metrics.Precision()(y_true, preds).numpy()
+        recall = tf.keras.metrics.Recall()(y_true, preds).numpy()
+        cm = confusion_matrix(y_true, preds)
         return {
-            "first_prediction_correct": first_correct,
-            "accuracy": float(accuracy_score(y_true, preds)),
-            "f1_score": float(f1_score(y_true, preds)),
-            "precision": float(tf.keras.metrics.Precision()(y_true, preds).numpy()),
-            "recall": float(tf.keras.metrics.Recall()(y_true, preds).numpy()),
-            "auc_roc": float(auc_roc),
-            "confusion_matrix": conf_matrix.tolist(),
-            "last epoch num": last_epoch_num,
-            "balanced_accuracy": float(balanced_accuracy)
-        }
+            'accuracy': acc,
+            'f1_score': f1,
+            'balanced_accuracy': bal_acc,
+            'precision': precision,
+            'recall': recall,
+            'confusion_matrix': cm
+        }        
+                
+        
+@tf.keras.utils.register_keras_serializable()
+def balanced_accuracy(y_true, y_pred):
+    y_pred_labels = tf.argmax(y_pred, axis=1)
+    y_true_labels = tf.argmax(y_true, axis=1)
+    cm = tf.math.confusion_matrix(y_true_labels, y_pred_labels, num_classes=3)
+    per_class_acc = tf.linalg.diag_part(cm) / tf.reduce_sum(cm, axis=1)
+    bal_acc = tf.reduce_mean(per_class_acc)
+    return bal_acc

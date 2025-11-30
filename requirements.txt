@@ -8,3 +8,4 @@ tabulate
 pandas_ta
 seaborn
 matplotlib
+imbalanced-learn
