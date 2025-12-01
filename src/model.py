@@ -201,7 +201,7 @@ class FinancialLSTMModel:
         
         callbacks = [
             tf.keras.callbacks.ReduceLROnPlateau(monitor='loss', factor=0.5, patience=3, verbose=VERBOSE),
-            tf.keras.callbacks.EarlyStopping(monitor='val_balanced_accuracy', mode='max', patience=30, restore_best_weights=True, verbose=1)
+            tf.keras.callbacks.EarlyStopping(monitor='val_balanced_accuracy', mode='max', patience=45, restore_best_weights=True, verbose=1)
         ]
 
         val = (self.X_val, self.y_val) if self.val_split > 0 else None
