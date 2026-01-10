@@ -14,10 +14,10 @@ import os, random, numpy as np, tensorflow as tf
 # -------------------------- PARAMS --------------------------
 
 CSV_PATHS = [
-    './../data/AAPL_1h.csv', 
-    './../data/GOOGL_1h.csv', 
-    './../data/^NDX_1h.csv', 
-    './../data/^GSPC_1h.csv'
+    './../../data/AAPL_1h.csv', 
+    './../../data/GOOGL_1h.csv', 
+    './../../data/^NDX_1h.csv', 
+    './../../data/^GSPC_1h.csv'
     ]
 
 DATE_COL = 'Datetime'
@@ -31,7 +31,7 @@ TEST_RATIO = 0.1
 VAL_SPLIT = 0.1
 
 REPS = 10
-OUTPUT_DIR='./../res/'
+OUTPUT_DIR='./../../res/'
 
 
 # FEATURES = [
